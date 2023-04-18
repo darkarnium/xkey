@@ -50,6 +50,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+.ruff_cache/
 
 # Translations
 *.mo
@@ -143,7 +144,6 @@ TODO.md
 # Profiling information.
 *.prof
 result.json
-stacs-rules/
 
 # macOS files.
 .DS_Store

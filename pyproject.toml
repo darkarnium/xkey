@@ -15,6 +15,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
+    "pydantic",
 ]
 
 [project.optional-dependencies]
