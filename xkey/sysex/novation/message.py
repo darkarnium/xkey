@@ -9,12 +9,13 @@ from xkey.sysex import constant
 class Message:
     """Expresses a Novation SysEx message."""
 
+    name: str = str()
     fields: Dict[str, str] = {}
     identifier: bytes = bytes()
 
     def size(self) -> int:
         """Returns the size of the message, in bytes."""
-        return struct.calcsize(self.fields)
+        return struct.calcsize("".join(self.fields.values()))
 
     def to_bytes(self) -> bytearray:
         """Returns this SysEx message as bytes."""
@@ -54,13 +55,14 @@ class Message:
         fields = list(self.fields.keys())
         format_ = "".join(self.fields.values())
 
-        for index, value in enumerate(struct.unpack(format_, bytes(buffer[6:-1]))):
+        for index, value in enumerate(struct.unpack(format_, buffer[6:-1])):
             setattr(self, fields[index], value)
 
 
 class Start(Message):
     """Expresses a Novation 'Start' SysEx message."""
 
+    name: str = "START"
     identifier: bytes = bytearray([0x00, 0x71])
 
     # A mapping of the field name to its format string. These MUST be in the order.
@@ -74,6 +76,7 @@ class Start(Message):
 class Metadata(Message):
     """Expresses a Novation 'Metadata' SysEx message."""
 
+    name: str = "METADATA"
     identifier: bytes = bytearray([0x00, 0x7C])
 
     # A mapping of the field name to its format string. These MUST be in the order.
@@ -87,6 +90,7 @@ class Metadata(Message):
 class Data(Message):
     """Expresses a Novation 'Data' SysEx message."""
 
+    name: str = "DATA"
     identifier: bytes = bytearray([0x00, 0x72])
 
     # A mapping of the field name to its format string. These MUST be in the order.
@@ -98,6 +102,7 @@ class Data(Message):
 class End(Message):
     """Expresses a Novation 'End' SysEx message."""
 
+    name: str = "END"
     identifier: bytes = bytearray([0x00, 0x73])
 
     # A mapping of the field name to its format string. These MUST be in the order.

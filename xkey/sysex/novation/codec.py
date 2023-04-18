@@ -1,8 +1,7 @@
 """Encoding and decoding functions for Novation SysEx messages."""
 
 import math
-
-from numpy import int8, uint8, uint32
+from ctypes import c_int8, c_uint8
 
 # The size of chunks to read and process from the input firmware.
 CHUNK_SIZE = 32
@@ -15,55 +14,30 @@ def decoder(buffer: bytearray) -> bytearray:
     """Decode the input buffer from 7-bit Novation compatible SysEx."""
     decoded = bytearray()
 
-    # TODO: Clean this up.
-    i = 0
-    while i <= 4:
-        offset = i * 8
-        decoded.append(
-            uint8(
-                (int8(uint32(buffer[offset + 1]) >> 6) & 0x01)
-                | int8(uint32(buffer[offset]) << 1)
-            )
-        )
-        decoded.append(
-            uint8(
-                (int8(uint32(buffer[offset + 2]) >> 5) & 0x03)
-                | int8(uint32(buffer[offset + 1]) << 2)
-            )
-        )
-        decoded.append(
-            uint8(
-                (int8(uint32(buffer[offset + 3]) >> 4) & 0x07)
-                | int8(uint32(buffer[offset + 2]) << 3)
-            )
-        )
-        decoded.append(
-            uint8(
-                (int8(uint32(buffer[offset + 4]) >> 3) & 0x0F)
-                | int8(uint32(buffer[offset + 3]) << 4)
-            )
-        )
+    for start in range(0, len(buffer) - 1, 8):
+        for index in range(0, 7):
+            offset = start + index
 
-        if i >= 4:
-            break
+            # The final round isn't complete, so break early.
+            if offset > 32:
+                break
 
-        decoded.append(
-            uint8(
-                (int8(uint32(buffer[offset + 5]) >> 2) & 0x1F)
-                | int8(uint32(buffer[offset + 4]) << 5)
+            # Track the current and next byte for simplicity during future operations.
+            byte = buffer[offset]
+            next_ = buffer[offset + 1]
+
+            # Generate shift amounts.
+            byte_shift = (index % 7) + 1
+            mask_shift = 6 - (index % 7)
+
+            # Shift.
+            masked = (
+                c_int8(next_ >> mask_shift).value & c_uint8(0x7F >> mask_shift).value
             )
-        )
-        decoded.append(
-            uint8(
-                (int8(uint32(buffer[offset + 6]) >> 1) & 0x3F)
-                | int8(uint32(buffer[offset + 5]) << 6)
-            )
-        )
-        decoded.append(
-            uint8(
-                int8(buffer[offset + 7] & 0x7F) | int8(uint32(buffer[offset + 6]) << 7)
-            )
-        )
+            shifted = c_int8(byte << byte_shift).value
+
+            # Track the decoded byte.
+            decoded.append(c_uint8(shifted | masked).value)
 
     return decoded
 
@@ -83,14 +57,14 @@ def encoder(buffer: bytearray, last: bytes = 0x0) -> bytearray:
         mask_shift = 7 - (offset % 7)
 
         # Shift.
-        shifted = uint8(byte >> byte_shift)
-        masked = uint8((last << mask_shift) & 0x7F)
+        shifted = c_uint8(byte >> byte_shift).value
+        masked = c_uint8(last << mask_shift).value & 0x7F
 
         # The 8th byte is handled a little differently, rather than OR-ing the bit
         # shifted current byte with a mask generated using the previous value, we just
         # mask off the 8th bit of the previous value and track both bytes as values.
         if offset > 0 and offset % 7 == 0:
-            encoded.append(uint8(last) & 0x7F)
+            encoded.append(c_uint8(last).value & 0x7F)
             encoded.append(shifted)
             continue
 
@@ -98,6 +72,6 @@ def encoder(buffer: bytearray, last: bytes = 0x0) -> bytearray:
         encoded.append(shifted ^ masked)
 
     # Handle the final 'carry'.
-    encoded.append(uint8(byte << (offset % 7) & 0x7F))
+    encoded.append(c_uint8(byte << (offset % 7).value) & 0x7F)
 
     return encoded
