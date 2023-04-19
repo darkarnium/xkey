@@ -19,7 +19,7 @@ def decoder(buffer: bytearray) -> bytearray:
             offset = start + index
 
             # The final round isn't complete, so break early.
-            if offset > 32:
+            if (offset + 1) >= len(buffer):
                 break
 
             # Track the current and next byte for simplicity during future operations.
