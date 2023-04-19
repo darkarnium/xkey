@@ -1,3 +1,3 @@
-### XKey
+### xKey
 
-Novation LaunchKey and FLKey SysEx utilities.
+Novation SysEx utilities.

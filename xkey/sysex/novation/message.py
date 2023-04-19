@@ -1,4 +1,4 @@
-"""SysEx data models used by XKey."""
+"""Novation specific data models used by xKey."""
 
 import struct
 from typing import Dict
@@ -67,7 +67,7 @@ class Start(Message):
 
     # A mapping of the field name to its format string. These MUST be in the order.
     fields: Dict[str, str] = {
-        "unknown0": "c",
+        "manufacturer": "c",
         "model": "c",
         "build": "6s",
     }

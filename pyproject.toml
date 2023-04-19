@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xkey"
 readme = "README.md"
-description = "Novation LaunchKey and FLKey SysEx tools."
+description = "Novation SysEx utilities."
 requires-python = ">=3.7"
 dynamic = ["version"]
 authors = [{name = "Peter Adkins", email = "peter@sunkenlab.com"}]
@@ -13,10 +13,7 @@ license = {text = "BSD-3-Clause"}
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-dependencies = [
-    "numpy",
-    "pydantic",
-]
+dependencies = []
 
 [project.optional-dependencies]
 tests = [

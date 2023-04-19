@@ -1,13 +1,6 @@
 """Encoding and decoding functions for Novation SysEx messages."""
 
-import math
 from ctypes import c_int8, c_uint8
-
-# The size of chunks to read and process from the input firmware.
-CHUNK_SIZE = 32
-
-# How many bytes are needed to express the desired chunk size with 7-bit bytes?
-ENCODED_CHUNK_SIZE = math.ceil((CHUNK_SIZE * 8) / 7)
 
 
 def decoder(buffer: bytearray) -> bytearray:

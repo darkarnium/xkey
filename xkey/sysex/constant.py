@@ -1,4 +1,4 @@
-"""SysEx specific Constants."""
+"""SysEx specific constants."""
 
 # Per Table VII of "The Complete MIDI 1.0 Detailed Specification" v96.1 (third edition).
 MIDI_SYSEX_SOX = 0xF0
