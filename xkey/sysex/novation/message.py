@@ -4,6 +4,7 @@ import struct
 from typing import Dict
 
 from xkey.sysex import constant
+from xkey.sysex.novation.constant import FIELD_BUILD_SIZE, FIELD_META_SIZE
 
 
 class Message:
@@ -25,10 +26,14 @@ class Message:
         buffer.append(constant.MIDI_SYSEX_SOX)
         buffer.append(0x0)
         buffer.extend(constant.MIDI_SYSEX_MANUFACTURER_IDS["Novation"])
+        buffer.extend(self.identifier)
 
         # Add the message payload / body.
-        for field in self.fields.keys():
-            buffer.extend(bytearray(getattr(self, field)))
+        for field, format_ in self.fields.items():
+            try:
+                buffer.extend(bytearray(getattr(self, field)))
+            except AttributeError:
+                buffer.extend(bytearray(struct.calcsize(format_)))
 
         # Trailer.
         buffer.append(constant.MIDI_SYSEX_EOX)
@@ -69,7 +74,7 @@ class Start(Message):
     fields: Dict[str, str] = {
         "manufacturer": "c",
         "model": "c",
-        "build": "6s",
+        "build": f"{FIELD_BUILD_SIZE}s",
     }
 
 
@@ -82,8 +87,8 @@ class Metadata(Message):
     # A mapping of the field name to its format string. These MUST be in the order.
     fields: Dict[str, str] = {
         "unknown0": "c",
-        "build": "6s",
-        "chunk": "16s",
+        "build": f"{FIELD_BUILD_SIZE}s",
+        "chunk": f"{FIELD_META_SIZE}s",
     }
 
 

@@ -65,6 +65,6 @@ def encoder(buffer: bytearray, last: bytes = 0x0) -> bytearray:
         encoded.append(shifted ^ masked)
 
     # Handle the final 'carry'.
-    encoded.append(c_uint8(byte << (offset % 7).value) & 0x7F)
+    encoded.append(c_uint8(byte << (offset % 7)).value & 0x7F)
 
     return encoded

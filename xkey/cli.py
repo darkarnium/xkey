@@ -11,18 +11,18 @@ from xkey.sysex.novation import codec, constant, message
 def encode(filename: str, model: str, build: int) -> int:
     """Encodes Encodes a binary file to Novation compatible SysEx."""
     logger = logging.getLogger(__name__)
-
     buffer = bytearray()
     output = bytearray()
     in_path = pathlib.Path(filename).resolve()
+    out_path = f"{in_path}.syx"
 
-    logger.info(f"Generating update for {model}, build v{build}")
+    # Do horrible things with integers to get them into the desired format.
+    build_string = str(build).rjust(constant.FIELD_BUILD_SIZE, "0")
+    build_number = bytearray(constant.FIELD_BUILD_SIZE)
 
-    # We have to do a dance to get the build number into a zero padded integer here.
-    build_number = bytearray(6)
-
+    logger.info(f"Starting encoding of SysEx for {model}, build {build_string}")
     for index, byte in enumerate(bytearray([int(digit) for digit in str(build)])[::-1]):
-        build_number[5 - index] = byte
+        build_number[(len(build_number) - 1) - index] = byte
 
     # Construct the start message.
     start = message.Start()
@@ -32,24 +32,58 @@ def encode(filename: str, model: str, build: int) -> int:
 
     # Construct the metadata message.
     metadata = message.Metadata()
-    metadata.unknown0 = bytearray(1)
-    metadata.build = bytearray(str(build).rjust(6, "0"), "utf-8")
-    metadata.chunk = bytearray(16)
+    metadata.chunk = bytearray(constant.FIELD_META_SIZE)
+    metadata.build = bytearray(
+        str(build).rjust(constant.FIELD_BUILD_SIZE, "0"), "utf-8"
+    )
+
+    # Start constructing the SysEx output buffer.
+    output.extend(start.to_bytes())
+    output.extend(metadata.to_bytes())
 
     try:
         logger.info(f"Reading binary from {in_path}")
 
         with open(in_path, "rb") as fin:
-            pass
+            # First chunk is handled last - to account for the final "carry".
+            fin.seek(constant.FIELD_CHUNK_SIZE)
+
+            while True:
+                buffer = bytearray(fin.read(constant.FIELD_CHUNK_SIZE))
+                if len(buffer) < 1:
+                    break
+
+                # Add a data message to the output buffer for each chunk.
+                data = message.Data()
+                data.chunk = codec.encoder(buffer, last=0x0)
+                output.extend(data.to_bytes())
+
+            # Handle the first chunk last.
+            fin.seek(0)
+            data = message.End()
+            buffer = fin.read(constant.FIELD_CHUNK_SIZE)
+
+            data.chunk = codec.encoder(buffer, last=0x0)
+            output.extend(data.to_bytes())
     except (OSError, ValueError) as err:
         logger.fatal(f"Unable to read binary from file {in_path}: {err}")
         return 1
+
+    try:
+        logger.info(f"Writing encoded SysEx to {out_path}")
+
+        with open(out_path, "wb") as fout:
+            fout.write(output)
+    except OSError as err:
+        logger.fatal(f"Unable to write SysEx to file {out_path}: {err}")
+        return 1
+
+    return 0
 
 
 def decode(filename: str) -> int:
     """Decodes Novation compatible SysEx to a binary file."""
     logger = logging.getLogger(__name__)
-
     buffer = bytearray()
     output = bytearray()
     in_path = pathlib.Path(filename).resolve()
@@ -85,7 +119,9 @@ def decode(filename: str) -> int:
 
                 # No handler? No support for this message.
                 if not handler:
-                    raise ValueError("Unsupported SysEx message type encountered")
+                    raise ValueError(
+                        f"Unsupported SysEx message found {offset}-bytes into file"
+                    )
 
                 # Handle start messages appropriately.
                 if type(handler) == message.Start:

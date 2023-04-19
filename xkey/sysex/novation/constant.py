@@ -11,3 +11,9 @@ MODEL_IDS = {
     "flkey": bytearray([0x11]),
     "launchkey-mk3": bytearray([0x0F]),
 }
+
+
+# Size of fields used by models.
+FIELD_BUILD_SIZE = 6
+FIELD_CHUNK_SIZE = 32
+FIELD_META_SIZE = 16
