@@ -16,4 +16,3 @@ MODEL_IDS = {
 # Size of fields used by models.
 FIELD_BUILD_SIZE = 6
 FIELD_CHUNK_SIZE = 32
-FIELD_META_SIZE = 16

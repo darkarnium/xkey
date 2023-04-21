@@ -32,7 +32,7 @@ def encode(filename: str, model: str, build: int) -> int:
 
     # Construct the metadata message.
     metadata = message.Metadata()
-    metadata.chunk = bytearray(constant.FIELD_META_SIZE)
+    metadata.chunk = bytearray(8 * 2)
     metadata.build = bytearray(
         str(build).rjust(constant.FIELD_BUILD_SIZE, "0"), "utf-8"
     )

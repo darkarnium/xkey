@@ -86,9 +86,10 @@ class Metadata(Message):
 
     # A mapping of the field name to its format string. These MUST be in the order.
     fields: Dict[str, str] = {
-        "unknown0": "c",
+        "nullterm": "c",
         "build": f"{FIELD_BUILD_SIZE}s",
-        "chunk": f"{FIELD_META_SIZE}s",
+        "size": f"8s",
+        "crc32": f"8s",
     }
 
 
