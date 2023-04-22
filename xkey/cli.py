@@ -16,6 +16,7 @@ import logging
 import pathlib
 import sys
 
+from xkey.__about__ import __version__
 from xkey.sysex.novation import codec, constant, message
 
 
@@ -71,6 +72,12 @@ def encode(filename: str, model: str, build: int) -> int:
                 # Track the raw / unencoded value - as this will be required for both
                 # size and CRC later.
                 decoded.extend(buffer)
+
+                # Pad the final chunk to the required number of bytes. This must ONLY
+                # be done the buffer to be encoded, not the 'decoded' buffer - as the
+                # CRC and size are generated for the raw data.
+                if len(buffer) < constant.FIELD_CHUNK_SIZE:
+                    buffer.extend([0xFF] * (constant.FIELD_CHUNK_SIZE - len(buffer)))
 
                 # Add a data message to the output buffer for each chunk.
                 data = message.Data()
@@ -237,6 +244,12 @@ def entrypoint():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,
+    )
+    parser.add_argument(
+        "--version",
+        help="Display the version number of xKey",
+        action="version",
+        version=__version__,
     )
     parser.add_argument(
         "--debug", help="Enables debug logging", action="store_true", default=False
