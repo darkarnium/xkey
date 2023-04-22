@@ -8,6 +8,7 @@ import sys
 from xkey.sysex.novation import codec, constant, message
 
 
+# mypy: disable-error-code="attr-defined"
 def encode(filename: str, model: str, build: int) -> int:
     """Encodes Encodes a binary file to Novation compatible SysEx."""
     logger = logging.getLogger(__name__)
@@ -59,14 +60,14 @@ def encode(filename: str, model: str, build: int) -> int:
 
             # Handle the first chunk last.
             fin.seek(0)
-            data = message.End()
-            buffer = fin.read(constant.FIELD_CHUNK_SIZE)
+            end = message.End()
+            buffer = bytearray(fin.read(constant.FIELD_CHUNK_SIZE))
 
             # Add this chunk to the START of the original buffer.
             decoded = bytearray(buffer) + decoded
 
-            data.chunk = codec.encoder(buffer, last=0x0)
-            encoded.extend(data.to_bytes())
+            end.chunk = codec.encoder(buffer, last=0x0)
+            encoded.extend(end.to_bytes())
     except (OSError, ValueError) as err:
         logger.fatal(f"Unable to read binary from file {in_path}: {err}")
         return 1
@@ -80,13 +81,15 @@ def encode(filename: str, model: str, build: int) -> int:
     metadata.payload_size = codec.bytes_to_nibbles(
         bytearray(size.to_bytes(4, byteorder="big"))
     )
-    metadata.crc = codec.bytes_to_nibbles(crc.to_bytes(4, byteorder="big"))
+    metadata.crc = codec.bytes_to_nibbles(
+        bytearray(crc.to_bytes(4, byteorder="big")),
+    )
     metadata.build = bytearray(
         str(build).rjust(constant.FIELD_BUILD_SIZE, "0"), "utf-8"
     )
-    logger.info(f"Input binary file size {size}-bytes (CRC32 0x{crc:08x})")
 
     # Build the SysEx file.
+    logger.info(f"Input binary file size {size}-bytes (CRC32 0x{crc:08x})")
     encoded = bytearray(metadata.to_bytes()) + encoded
     encoded = bytearray(start.to_bytes()) + encoded
 
@@ -102,6 +105,7 @@ def encode(filename: str, model: str, build: int) -> int:
     return 0
 
 
+# mypy: disable-error-code="attr-defined"
 def decode(filename: str) -> int:
     """Decodes Novation compatible SysEx to a binary file."""
     logger = logging.getLogger(__name__)

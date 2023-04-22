@@ -45,7 +45,7 @@ def nibbles_to_bytes(buffer: bytearray) -> bytearray:
     """
     output = bytearray()
 
-    # Shift the Nth byte by 4-bits to represent the high nyble, and OR with the
+    # Shift the Nth byte by 4-bits to represent the high nibbles, and OR with the
     # subsequent byte to yield the full value of the byte.
     for index in range(0, len(buffer), 2):
         hi = c_uint8(buffer[index] << 4).value
@@ -89,7 +89,7 @@ def decoder(buffer: bytearray) -> bytearray:
     return decoded
 
 
-def encoder(buffer: bytearray, last: bytes = 0x0) -> bytearray:
+def encoder(buffer: bytearray, last: int = 0x0) -> bytearray:
     """Encode the input buffer into 7-bit Novation compatible SysEx."""
     byte = last
     encoded = bytearray()

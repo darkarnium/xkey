@@ -88,8 +88,8 @@ class Metadata(Message):
     fields: Dict[str, str] = {
         "nullterm": "c",
         "build": f"{FIELD_BUILD_SIZE}s",
-        "payload_size": f"8s",
-        "crc": f"8s",
+        "payload_size": "8s",
+        "crc": "8s",
     }
 
 
