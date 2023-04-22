@@ -7,9 +7,6 @@
             "source.organizeImports": true,
         },
     },
-    "files.associations": {
-        "*.j2": "html"
-    },
     "editor.rulers": [
         88
     ],

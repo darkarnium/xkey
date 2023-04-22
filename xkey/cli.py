@@ -1,4 +1,15 @@
-"""xKey - Novation SysEx utilities."""
+"""xKey - Novation SysEx utilities.
+
+Provides encoding and decoding of Novation SysEx format firmware updates. This utility
+is intended to enable analysis and modification of firmware for supported Novation
+devices.
+
+Currently supported devices include:
+
+    * Novation Launchkey MK3
+    * Novation FLKey
+
+"""
 
 import argparse
 import logging
@@ -10,7 +21,15 @@ from xkey.sysex.novation import codec, constant, message
 
 # mypy: disable-error-code="attr-defined"
 def encode(filename: str, model: str, build: int) -> int:
-    """Encodes Encodes a binary file to Novation compatible SysEx."""
+    """Encodes Encodes a binary file to Novation compatible SysEx.
+
+    :param filename: The name and path to the file to encode.
+    :param model: A supported Novation model name.
+    :param build: The build number to encode in this SysEx file.
+
+    :return: An exit code indicating if the operation was successful or not. Zero
+        means success, any other value failure.
+    """
     logger = logging.getLogger(__name__)
     buffer = bytearray()
     decoded = bytearray()
@@ -55,7 +74,7 @@ def encode(filename: str, model: str, build: int) -> int:
 
                 # Add a data message to the output buffer for each chunk.
                 data = message.Data()
-                data.chunk = codec.encoder(buffer, last=0x0)
+                data.chunk = codec.encoder(buffer)
                 encoded.extend(data.to_bytes())
 
             # Handle the first chunk last.
@@ -66,7 +85,7 @@ def encode(filename: str, model: str, build: int) -> int:
             # Add this chunk to the START of the original buffer.
             decoded = bytearray(buffer) + decoded
 
-            end.chunk = codec.encoder(buffer, last=0x0)
+            end.chunk = codec.encoder(buffer)
             encoded.extend(end.to_bytes())
     except (OSError, ValueError) as err:
         logger.fatal(f"Unable to read binary from file {in_path}: {err}")
@@ -107,7 +126,13 @@ def encode(filename: str, model: str, build: int) -> int:
 
 # mypy: disable-error-code="attr-defined"
 def decode(filename: str) -> int:
-    """Decodes Novation compatible SysEx to a binary file."""
+    """Decodes Novation compatible SysEx to a binary file.
+
+    :param filename: The name and path to the file to decode.
+
+    :return: An exit code indicating if the operation was successful or not. Zero
+        means success, any other value failure.
+    """
     logger = logging.getLogger(__name__)
     buffer = bytearray()
     output = bytearray()
@@ -206,10 +231,13 @@ def decode(filename: str) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    """xKey - Novation SysEx utilities."""
+def entrypoint():
+    """The main xKey CLI entrypoint."""
 
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument(
         "--debug", help="Enables debug logging", action="store_true", default=False
     )
@@ -243,7 +271,6 @@ if __name__ == "__main__":
         level=logging.DEBUG if arguments.debug else logging.INFO,
         format="%(asctime)s - [%(levelname)s] %(message)s",
     )
-    logger = logging.getLogger("xKey")
 
     # Dispatch.
     if arguments.subparser == "encode":

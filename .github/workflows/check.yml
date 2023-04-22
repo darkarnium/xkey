@@ -1,0 +1,29 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint_and_test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [ '3.9', '3.10' ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: pip install --upgrade pip setuptools wheel tox
+
+      - run: tox

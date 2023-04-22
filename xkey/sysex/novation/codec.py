@@ -5,10 +5,15 @@ from ctypes import c_int8, c_uint8
 from xkey.sysex.novation.constant import CRC32_POLY
 
 
-def crc32(buffer: bytearray, crc=0xFFFFFFFF) -> int:
+def crc32(buffer: bytearray, crc: int = 0xFFFFFFFF) -> int:
     """CRC32 implementation with ITU V.42 Poly.
 
     Adapted from Mark Adler's implementation via https://stackoverflow.com/a/69340177
+
+    :param buffer: The input buffer to calculate the CRC for.
+    :param crc: The CRC initial value (default: 0xFFFFFFFF).
+
+    :return: The calculated CRC for the input buffer.
     """
     for byte in buffer:
         crc ^= byte << 24
@@ -24,6 +29,10 @@ def bytes_to_nibbles(buffer: bytearray) -> bytearray:
     This result of this function is an output bytearray which is double the size of the
     input. This is due to the high and low nibbles of a single byte being encoded into
     TWO bytes, preventing the need for the use of bits unavailable in 7-bit bytes.
+
+    :param buffer: The input buffer to encode into "split nibbles".
+
+    :return: The encoded contents of the input buffer.
     """
     output = bytearray()
 
@@ -42,6 +51,10 @@ def nibbles_to_bytes(buffer: bytearray) -> bytearray:
     This result of this function is an output bytearray which is half the size of the
     input. This is due to the high and low nibbles of a single byte being encoded into
     TWO bytes, preventing the need for the use of bits unavailable in 7-bit bytes.
+
+    :param buffer: The input buffer to decode into bytes.
+
+    :return: The decoded contents of the input buffer.
     """
     output = bytearray()
 
@@ -58,7 +71,13 @@ def nibbles_to_bytes(buffer: bytearray) -> bytearray:
 
 
 def decoder(buffer: bytearray) -> bytearray:
-    """Decode the input buffer from 7-bit Novation compatible SysEx."""
+    """Decode the input buffer from 7-bit Novation compatible SysEx.
+
+    :param buffer: The input buffer to decode from 7-bit Novation compatible SysEx into
+        regular 8-bit bytes.
+
+    :return: The decoded contents of the input buffer.
+    """
     decoded = bytearray()
 
     for start in range(0, len(buffer) - 1, 8):
@@ -89,8 +108,15 @@ def decoder(buffer: bytearray) -> bytearray:
     return decoded
 
 
-def encoder(buffer: bytearray, last: int = 0x0) -> bytearray:
-    """Encode the input buffer into 7-bit Novation compatible SysEx."""
+def encoder(buffer: bytearray) -> bytearray:
+    """Encode the input buffer into 7-bit Novation compatible SysEx.
+
+    :param buffer: The input buffer to encode into 7-bit Novation compatible SysEx from
+        regular 8-bit bytes.
+
+    :return: The encoded contents of the input buffer.
+    """
+    last = 0x0
     byte = last
     encoded = bytearray()
 
