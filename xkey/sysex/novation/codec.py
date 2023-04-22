@@ -2,6 +2,60 @@
 
 from ctypes import c_int8, c_uint8
 
+from xkey.sysex.novation.constant import CRC32_POLY
+
+
+def crc32(buffer: bytearray, crc=0xFFFFFFFF) -> int:
+    """CRC32 implementation with ITU V.42 Poly.
+
+    Adapted from Mark Adler's implementation via https://stackoverflow.com/a/69340177
+    """
+    for byte in buffer:
+        crc ^= byte << 24
+        for _ in range(8):
+            crc = crc << 1 if (crc & 0x80000000) == 0 else (crc << 1) ^ CRC32_POLY
+
+    return crc
+
+
+def bytes_to_nibbles(buffer: bytearray) -> bytearray:
+    """Encodes bytes into "split nibbles".
+
+    This result of this function is an output bytearray which is double the size of the
+    input. This is due to the high and low nibbles of a single byte being encoded into
+    TWO bytes, preventing the need for the use of bits unavailable in 7-bit bytes.
+    """
+    output = bytearray()
+
+    for index in range(0, len(buffer)):
+        hi = c_uint8(buffer[index] >> 4).value
+        lo = c_uint8(buffer[index] & 0xF).value
+
+        output.extend([hi, lo])
+
+    return output
+
+
+def nibbles_to_bytes(buffer: bytearray) -> bytearray:
+    """Decodes "split nibbles" into bytes.
+
+    This result of this function is an output bytearray which is half the size of the
+    input. This is due to the high and low nibbles of a single byte being encoded into
+    TWO bytes, preventing the need for the use of bits unavailable in 7-bit bytes.
+    """
+    output = bytearray()
+
+    # Shift the Nth byte by 4-bits to represent the high nyble, and OR with the
+    # subsequent byte to yield the full value of the byte.
+    for index in range(0, len(buffer), 2):
+        hi = c_uint8(buffer[index] << 4).value
+        lo = c_uint8(buffer[index + 1]).value
+        byte = hi | lo
+
+        output.append(byte)
+
+    return output
+
 
 def decoder(buffer: bytearray) -> bytearray:
     """Decode the input buffer from 7-bit Novation compatible SysEx."""

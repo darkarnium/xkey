@@ -12,7 +12,13 @@ def encode(filename: str, model: str, build: int) -> int:
     """Encodes Encodes a binary file to Novation compatible SysEx."""
     logger = logging.getLogger(__name__)
     buffer = bytearray()
-    output = bytearray()
+    decoded = bytearray()
+    encoded = bytearray()
+
+    # Required to be calculated for metadata.
+    crc = int()
+    size = int()
+
     in_path = pathlib.Path(filename).resolve()
     out_path = f"{in_path}.syx"
 
@@ -30,17 +36,6 @@ def encode(filename: str, model: str, build: int) -> int:
     start.model = constant.MODEL_IDS[model]
     start.build = build_number
 
-    # Construct the metadata message.
-    metadata = message.Metadata()
-    metadata.chunk = bytearray(8 * 2)
-    metadata.build = bytearray(
-        str(build).rjust(constant.FIELD_BUILD_SIZE, "0"), "utf-8"
-    )
-
-    # Start constructing the SysEx output buffer.
-    output.extend(start.to_bytes())
-    output.extend(metadata.to_bytes())
-
     try:
         logger.info(f"Reading binary from {in_path}")
 
@@ -53,27 +48,53 @@ def encode(filename: str, model: str, build: int) -> int:
                 if len(buffer) < 1:
                     break
 
+                # Track the raw / unencoded value - as this will be required for both
+                # size and CRC later.
+                decoded.extend(buffer)
+
                 # Add a data message to the output buffer for each chunk.
                 data = message.Data()
                 data.chunk = codec.encoder(buffer, last=0x0)
-                output.extend(data.to_bytes())
+                encoded.extend(data.to_bytes())
 
             # Handle the first chunk last.
             fin.seek(0)
             data = message.End()
             buffer = fin.read(constant.FIELD_CHUNK_SIZE)
 
+            # Add this chunk to the START of the original buffer.
+            decoded = bytearray(buffer) + decoded
+
             data.chunk = codec.encoder(buffer, last=0x0)
-            output.extend(data.to_bytes())
+            encoded.extend(data.to_bytes())
     except (OSError, ValueError) as err:
         logger.fatal(f"Unable to read binary from file {in_path}: {err}")
         return 1
+
+    # Construct the metadata message.
+    size = len(decoded)
+    crc = codec.crc32(decoded)
+
+    metadata = message.Metadata()
+    metadata.chunk = bytearray(8 * 2)
+    metadata.payload_size = codec.bytes_to_nibbles(
+        bytearray(size.to_bytes(4, byteorder="big"))
+    )
+    metadata.crc = codec.bytes_to_nibbles(crc.to_bytes(4, byteorder="big"))
+    metadata.build = bytearray(
+        str(build).rjust(constant.FIELD_BUILD_SIZE, "0"), "utf-8"
+    )
+    logger.info(f"Input binary file size {size}-bytes (CRC32 0x{crc:08x})")
+
+    # Build the SysEx file.
+    encoded = bytearray(metadata.to_bytes()) + encoded
+    encoded = bytearray(start.to_bytes()) + encoded
 
     try:
         logger.info(f"Writing encoded SysEx to {out_path}")
 
         with open(out_path, "wb") as fout:
-            fout.write(output)
+            fout.write(encoded)
     except OSError as err:
         logger.fatal(f"Unable to write SysEx to file {out_path}: {err}")
         return 1
@@ -91,6 +112,10 @@ def decode(filename: str) -> int:
 
     # Supported message types.
     messages = [message.Start, message.End, message.Metadata, message.Data]
+
+    # This information will be extracted from metadata.
+    crc = int()
+    size = int()
 
     try:
         logger.info(f"Reading SysEx from {in_path}")
@@ -142,7 +167,14 @@ def decode(filename: str) -> int:
                 # Handle metadata appropriately.
                 if type(handler) == message.Metadata:
                     build = str(handler.build, "utf-8")
+                    size = int.from_bytes(
+                        codec.nibbles_to_bytes(handler.payload_size), byteorder="big"
+                    )
+                    crc = int.from_bytes(
+                        codec.nibbles_to_bytes(handler.crc), byteorder="big"
+                    )
                     logger.info(f"SysEx file appears to contain build {build}")
+                    logger.info(f"Encoded file size {size}-bytes (CRC32 0x{crc:08x})")
 
                 # Handle the chunk appropriately.
                 if type(handler) == message.Data:
@@ -162,7 +194,7 @@ def decode(filename: str) -> int:
         logger.info(f"Writing decoded SysEx to {out_path}")
 
         with open(out_path, "wb") as fout:
-            fout.write(output)
+            fout.write(output[0:size])
     except OSError as err:
         logger.fatal(f"Unable to write binary to file {out_path}: {err}")
         return 1

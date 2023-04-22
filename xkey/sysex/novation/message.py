@@ -4,7 +4,7 @@ import struct
 from typing import Dict
 
 from xkey.sysex import constant
-from xkey.sysex.novation.constant import FIELD_BUILD_SIZE, FIELD_META_SIZE
+from xkey.sysex.novation.constant import FIELD_BUILD_SIZE
 
 
 class Message:
@@ -88,8 +88,8 @@ class Metadata(Message):
     fields: Dict[str, str] = {
         "nullterm": "c",
         "build": f"{FIELD_BUILD_SIZE}s",
-        "size": f"8s",
-        "crc32": f"8s",
+        "payload_size": f"8s",
+        "crc": f"8s",
     }
 
 
